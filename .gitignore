@@ -1,0 +1,9 @@
+node_modules
+dist
+src-tauri/target
+src-tauri/gen
+tests/tmp
+tests/shots
+tests/media/*.mp4
+tests/media/*.webm
+tests/media/*.mp3

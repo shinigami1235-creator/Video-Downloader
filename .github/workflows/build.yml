@@ -1,0 +1,82 @@
+# Builds the Windows installer and the two Mac apps (Apple Silicon and Intel) on every push
+# to main, or from the Actions tab with "Run workflow". The files land on the Releases page
+# under "newest", which anyone can download from without a GitHub account.
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: npx tauri build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: src-tauri/target/release/bundle/nsis/*.exe
+          retention-days: 30
+
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - name: Build the Apple Silicon app
+        run: npx tauri build --target aarch64-apple-darwin
+      - name: Build the Intel app
+        run: npx tauri build --target x86_64-apple-darwin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: |
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+          retention-days: 30
+
+  release:
+    needs: [windows, mac]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: built
+      - name: Give the files plain names
+        run: |
+          mkdir out
+          cp built/windows/*.exe out/Video-Downloader-Windows-Setup.exe
+          cp built/mac/aarch64-apple-darwin/release/bundle/dmg/*.dmg out/Video-Downloader-Mac-Apple-Silicon.dmg
+          cp built/mac/x86_64-apple-darwin/release/bundle/dmg/*.dmg out/Video-Downloader-Mac-Intel.dmg
+          ls -la out
+      - name: Replace the newest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release delete newest --cleanup-tag --yes || true
+          gh release create newest out/* --target "$GITHUB_SHA" --title "Video Downloader (newest build)" --latest \
+            --notes "Windows: download Video-Downloader-Windows-Setup.exe. Mac with an M chip: download Video-Downloader-Mac-Apple-Silicon.dmg. Older Intel Mac: download Video-Downloader-Mac-Intel.dmg."

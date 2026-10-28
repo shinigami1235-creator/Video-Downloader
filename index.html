@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Video Downloader</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="top">
+        <div class="brand">
+          <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="#1d2127" stroke="#3a414c"/><path d="M16 7v12m0 0-5-5m5 5 5-5" fill="none" stroke="#e8c16a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 23h14" stroke="#e7e9ec" stroke-width="2.6" stroke-linecap="round"/></svg>
+          <span>Video Downloader</span>
+        </div>
+        <button id="settingsBtn" class="ghost icon" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.3 7.3 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.3 7.3 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1-2 7z"/></svg>
+        </button>
+      </header>
+
+      <main>
+        <form id="linkForm" class="link-row" autocomplete="off">
+          <input id="linkInput" type="text" spellcheck="false" placeholder="Paste a link from YouTube, X, Facebook, TikTok, Instagram or any page with a video" />
+          <button id="lookBtn" type="submit" class="primary">Look up</button>
+        </form>
+        <p id="linkMsg" class="msg" hidden></p>
+        <div id="linkDetails" class="details-box" hidden>
+          <button id="linkDetailsBtn" type="button" class="ghost small">Details</button>
+          <pre id="linkDetailsText" hidden></pre>
+        </div>
+
+        <section id="card" class="card" hidden>
+          <div class="thumb" id="thumbBox"><img id="thumb" alt="" /><span id="dur" class="dur"></span></div>
+          <div class="details">
+            <h2 id="title"></h2>
+            <p id="sub" class="dim"></p>
+
+            <div id="pickBox" class="pick" hidden>
+              <div class="pick-head">
+                <label class="check"><input type="checkbox" id="pickAll" checked /> <span id="pickCount"></span></label>
+              </div>
+              <ul id="pickList" class="pick-list"></ul>
+            </div>
+
+            <div id="playlistRow" class="row" hidden>
+              <span class="label">Playlist</span>
+              <div class="seg" id="plSeg">
+                <button type="button" data-v="all">Whole playlist</button>
+                <button type="button" data-v="one">This video only</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <span class="label">Type</span>
+              <div class="seg" id="typeSeg">
+                <button type="button" data-v="video">Video (MP4)</button>
+                <button type="button" data-v="small">Small video</button>
+                <button type="button" data-v="mp3">Audio (MP3)</button>
+                <button type="button" data-v="m4a">Audio (M4A)</button>
+              </div>
+            </div>
+
+            <div class="row" id="qualityRow">
+              <span class="label">Quality</span>
+              <select id="quality"></select>
+            </div>
+
+            <div class="row" id="sizeRow" hidden>
+              <span class="label">Size limit</span>
+              <select id="sizeLimit">
+                <option value="25">25 MB</option>
+                <option value="50">50 MB</option>
+                <option value="100">100 MB</option>
+                <option value="200">200 MB</option>
+              </select>
+              <span id="sizeHint" class="dim small"></span>
+            </div>
+
+            <div class="row" id="partRow">
+              <span class="label">Part</span>
+              <div class="seg" id="partSeg">
+                <button type="button" data-v="whole">Whole video</button>
+                <button type="button" data-v="times">Choose parts</button>
+                <button type="button" data-v="chapters" id="chaptersBtn">Chapters</button>
+              </div>
+            </div>
+
+            <div id="partsBox" class="parts" hidden>
+              <div id="previewBox" class="preview" hidden>
+                <video id="preview" controls preload="metadata"></video>
+                <div class="preview-bar">
+                  <span id="previewTime" class="dim"></span>
+                  <button id="markStart" type="button" class="ghost small">Mark start</button>
+                  <button id="markEnd" type="button" class="ghost small">Mark end</button>
+                </div>
+              </div>
+              <p id="previewMsg" class="dim small" hidden></p>
+              <ul id="partList" class="part-list"></ul>
+              <button id="addPart" type="button" class="ghost small">Add another part</button>
+            </div>
+
+            <div id="chaptersBox" class="parts" hidden>
+              <ul id="chapterList" class="pick-list"></ul>
+            </div>
+
+            <div class="row" id="joinRow" hidden>
+              <span class="label"></span>
+              <label class="check"><input type="checkbox" id="joinOn" /> Join the parts into one file</label>
+            </div>
+
+            <div class="row" id="subsRow" hidden>
+              <span class="label">Subtitles</span>
+              <select id="subs"></select>
+            </div>
+
+            <div class="row" id="extrasRow">
+              <span class="label">Also</span>
+              <div class="extras">
+                <label class="check" id="thumbOpt"><input type="checkbox" id="thumbOn" /> Save the thumbnail</label>
+                <label class="check" id="chapterOpt"><input type="checkbox" id="chapterOn" /> One file per chapter</label>
+                <label class="check" id="sponsorOpt"><input type="checkbox" id="sponsorOn" /> Cut sponsor segments</label>
+                <label class="check" id="phoneOpt"><input type="checkbox" id="phoneOn" /> Send to phone</label>
+              </div>
+            </div>
+
+            <div class="row">
+              <span class="label">Save to</span>
+              <span id="folder" class="path"></span>
+              <button id="folderBtn" type="button" class="ghost">Change</button>
+            </div>
+
+            <p id="cardMsg" class="msg" hidden></p>
+            <div class="actions">
+              <button id="cancelCardBtn" type="button" class="ghost">Close</button>
+              <button id="downloadBtn" type="button" class="primary big">Download</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="list-head">
+          <h3>Downloads</h3>
+          <button id="clearBtn" type="button" class="ghost small" hidden>Clear finished</button>
+        </section>
+        <ul id="list" class="list"></ul>
+        <p id="empty" class="dim empty">Nothing downloaded yet.</p>
+      </main>
+
+      <div id="drop" class="drop" hidden>Drop the link</div>
+    </div>
+
+    <div id="setup" class="overlay" hidden>
+      <div class="panel">
+        <h2>Downloading the tools</h2>
+        <p class="dim">The app needs three programs before the first download.</p>
+        <ul id="setupList" class="setup-list"></ul>
+        <p id="setupMsg" class="msg" hidden></p>
+        <div class="actions"><button id="setupRetry" type="button" class="primary" hidden>Retry</button></div>
+      </div>
+    </div>
+
+    <div id="settings" class="overlay" hidden>
+      <div class="panel">
+        <h2>Settings</h2>
+        <div class="row">
+          <span class="label wide">Downloads at once</span>
+          <div class="seg" id="limitSeg">
+            <button type="button" data-v="1">1</button>
+            <button type="button" data-v="2">2</button>
+            <button type="button" data-v="3">3</button>
+          </div>
+        </div>
+        <div class="row">
+          <span class="label wide">Copied links</span>
+          <label class="check"><input type="checkbox" id="clipOn" /> Fill in a link copied before switching to the app</label>
+        </div>
+        <div class="row">
+          <span class="label wide">Sign-in</span>
+          <label class="check"><input type="checkbox" id="firefoxOn" /> Use my Firefox sign-in for pasted links</label>
+        </div>
+        <p class="dim small indent">Instagram, members-only and age-restricted videos need it. Links sent from the browser extension carry the browser's own sign-in.</p>
+        <div class="row">
+          <span class="label wide">yt-dlp</span>
+          <span id="version" class="dim"></span>
+          <button id="updateBtn" type="button" class="ghost small">Update yt-dlp</button>
+        </div>
+        <p class="dim small indent">The app updates yt-dlp once a day since YouTube changes how it serves videos every few weeks. Press Update yt-dlp when a download fails that worked before.</p>
+        <p id="updateMsg" class="msg" hidden></p>
+        <div class="row">
+          <span class="label wide">Browser extension</span>
+          <span id="extState" class="dim"></span>
+          <button id="extBtn" type="button" class="ghost small">How to install</button>
+        </div>
+        <div class="row">
+          <span class="label wide">Tools folder</span>
+          <button id="toolsBtn" type="button" class="ghost small">Open</button>
+        </div>
+        <div class="actions"><button id="settingsClose" type="button" class="primary">Done</button></div>
+      </div>
+    </div>
+
+    <div id="extHelp" class="overlay" hidden>
+      <div class="panel">
+        <h2>Install the browser extension</h2>
+        <p class="dim">The extension adds Download with Video Downloader to the right-click menu in Chrome and Edge, and its icon lists every video on a page. Keep this app open while you use it.</p>
+        <ol class="steps">
+          <li>Press Open the extension folder below and leave the window open.</li>
+          <li>In Chrome, type <b>chrome://extensions</b> in the address bar and press Enter. In Edge, type <b>edge://extensions</b>.</li>
+          <li>Switch on Developer mode at the top right of that page. In Edge it is in the left column.</li>
+          <li>Press Load unpacked and pick the <b>Video Downloader extension</b> folder from step 1, which is in Documents.</li>
+          <li>Click the jigsaw icon next to the address bar and press the pin beside Video Downloader to keep its icon in view.</li>
+        </ol>
+        <p class="dim small">After the app updates, press the reload arrow on the extension's card in chrome://extensions.</p>
+        <div class="actions">
+          <button id="extFolderBtn" type="button" class="ghost">Open the extension folder</button>
+          <button id="extClose" type="button" class="primary">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

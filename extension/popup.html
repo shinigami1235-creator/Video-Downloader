@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <img src="icons/icon32.png" alt="" width="20" height="20" />
+      <span>Videos on this page</span>
+    </header>
+    <p id="msg" class="msg info">Looking for videos</p>
+    <div id="pick" hidden>
+      <label class="check all"><input type="checkbox" id="all" checked /> <span id="count"></span></label>
+      <ul id="list"></ul>
+    </div>
+    <label class="check sign"><input type="checkbox" id="signIn" checked /> Use my sign-in for this site</label>
+    <div class="actions">
+      <button id="pageBtn" type="button" class="ghost" title="Lets yt-dlp read the page itself, which works for YouTube, Instagram, TikTok, Facebook and most video sites">Send the page link</button>
+      <button id="sendBtn" type="button" class="primary" disabled>Send to the app</button>
+    </div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,168 @@
+:root {
+  --bg: #0f1114;
+  --bg2: #16191e;
+  --bg3: #1d2127;
+  --bg4: #262b33;
+  --line: #2c323b;
+  --line2: #3a414c;
+  --text: #e7e9ec;
+  --dim: #9aa1ab;
+  --gold: #c9a45c;
+  --gold2: #e8c16a;
+  --danger: #e5645f;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 400px;
+  background: var(--bg2);
+  color: var(--text);
+  font: 13px/1.4 'Segoe UI', system-ui, sans-serif;
+  padding: 12px 14px 14px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.msg {
+  margin: 10px 0 0;
+  color: var(--danger);
+}
+
+.msg.info {
+  color: var(--dim);
+}
+
+#pick {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.all {
+  display: flex;
+  padding: 7px 10px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--line);
+}
+
+#list {
+  list-style: none;
+  margin: 0;
+  padding: 3px 0;
+  max-height: 330px;
+  overflow-y: auto;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 16px 64px 1fr;
+  gap: 9px;
+  align-items: center;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--bg3);
+}
+
+.thumb {
+  aspect-ratio: 16 / 9;
+  border-radius: 4px;
+  background: var(--bg4) center / cover no-repeat;
+}
+
+.name {
+  overflow: hidden;
+}
+
+.name b {
+  display: block;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.name span {
+  display: block;
+  color: var(--dim);
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.check input {
+  accent-color: var(--gold);
+  margin: 0;
+}
+
+.sign {
+  margin-top: 10px;
+  color: var(--dim);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: 1px solid var(--line2);
+  background: var(--bg3);
+  border-radius: 7px;
+  padding: 7px 12px;
+}
+
+button.ghost {
+  background: transparent;
+}
+
+button.ghost:hover {
+  background: var(--bg3);
+}
+
+button.primary {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #17140d;
+  font-weight: 600;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--gold2);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

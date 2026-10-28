@@ -1,0 +1,30 @@
+// A person's Instagram stories come back as one list whose videos share the stories
+// link, so a ticked story has to download by its number in the list.
+import { chromium } from 'playwright';
+import { rmSync, readdirSync, readFileSync } from 'node:fs';
+const DL = '/tmp/ytd-test/downloads';
+const fail = (m) => { console.log('FAIL', m); process.exitCode = 1; };
+const ok = (c, m) => (c ? console.log('ok', m) : fail(m));
+rmSync(DL, { recursive: true, force: true });
+rmSync('/tmp/ytd-test/argv.log', { force: true });
+rmSync('/tmp/ytd-test/appdata/settings.json', { force: true });
+rmSync('/tmp/ytd-test/appdata/history.json', { force: true });
+await fetch('http://127.0.0.1:5174/api/test/state', { method: 'POST', body: JSON.stringify({ clipboard: '', connector: false, sent: [] }) });
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
+await page.goto('http://localhost:5173/');
+await page.waitForSelector('#linkInput');
+await page.waitForTimeout(600);
+await page.fill('#linkInput', 'https://www.instagram.com/stories/testuser/');
+await page.click('#lookBtn');
+await page.waitForSelector('#card.list-mode:not([hidden])', { timeout: 20000 });
+ok((await page.textContent('#title')) === 'Story by testuser', 'stories open as a list');
+await page.uncheck('#pickList li:nth-child(1) input');
+await page.click('#downloadBtn');
+await page.waitForFunction(() => document.querySelectorAll('.item.done, .item.failed').length >= 1, null, { timeout: 90000 });
+const args = JSON.parse(readFileSync('/tmp/ytd-test/argv.log', 'utf8').trim().split('\n').pop());
+ok(args[args.indexOf('--playlist-items') + 1] === '2', 'only story 2 requested');
+const files = readdirSync(DL, { recursive: true }).filter((f) => /\.mp4$/.test(f));
+console.log('files:', files, await page.textContent('.item .status'));
+ok(files.length === 1, 'one story saved');
+await browser.close();

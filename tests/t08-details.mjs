@@ -1,0 +1,21 @@
+// A failed look-up shows yt-dlp's own error line under Details.
+import { chromium } from 'playwright';
+const fail = (m) => { console.log('FAIL', m); process.exitCode = 1; };
+const ok = (c, m) => (c ? console.log('ok', m) : fail(m));
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const app = await browser.newPage({ viewport: { width: 1000, height: 600 } });
+await app.goto('http://localhost:5173/');
+await app.waitForSelector('#linkInput');
+await app.waitForTimeout(600);
+await app.fill('#linkInput', 'https://www.youtube.com/watch?v=PRIVATE0001');
+await app.click('#lookBtn');
+await app.waitForSelector('#linkDetails:not([hidden])', { timeout: 20000 });
+await app.click('#linkDetailsBtn');
+const text = await app.textContent('#linkDetailsText');
+ok(/^ERROR: \[youtube\] PRIVATE0001: Private video/.test(text), 'details show the raw line: ' + text);
+await app.screenshot({ path: new URL('./shots/50-details.png', import.meta.url).pathname });
+await app.fill('#linkInput', 'https://www.youtube.com/watch?v=TESTVID0001');
+await app.click('#lookBtn');
+await app.waitForSelector('#card:not([hidden])', { timeout: 20000 });
+ok(await app.isHidden('#linkDetails'), 'details clear on the next look-up');
+await browser.close();
