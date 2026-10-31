@@ -1,5 +1,8 @@
 // Runs the whole app in a browser against the stand-in yt-dlp.
 import { chromium } from 'playwright';
+import { rmSync } from 'node:fs';
+rmSync('/tmp/ytd-test/appdata/settings.json', { force: true });
+rmSync('/tmp/ytd-test/appdata/history.json', { force: true });
 const shots = new URL('./shots/', import.meta.url).pathname;
 await fetch('http://127.0.0.1:5174/api/test/state', { method: 'POST', body: JSON.stringify({ clipboard: '', connector: false, sent: [] }) });
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
@@ -68,7 +71,7 @@ await page.waitForFunction(() => !document.querySelector('#linkMsg').hidden && !
 console.log('private msg:', await page.textContent('#linkMsg'));
 
 // cancel mid-download
-const { rmSync } = await import('node:fs');
+
 rmSync('/tmp/ytd-test/downloads', { recursive: true, force: true });
 await page.fill('#linkInput', 'https://www.youtube.com/watch?v=TESTVID0001');
 await page.click('#lookBtn');

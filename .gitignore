@@ -7,3 +7,5 @@ tests/shots
 tests/media/*.mp4
 tests/media/*.webm
 tests/media/*.mp3
+tests/media/*.wav
+src-tauri/binaries

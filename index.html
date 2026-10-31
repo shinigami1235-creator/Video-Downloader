@@ -24,6 +24,7 @@
           <button id="lookBtn" type="submit" class="primary">Look up</button>
         </form>
         <p id="linkMsg" class="msg" hidden></p>
+        <div class="file-row"><button id="sttFileBtn" type="button" class="ghost small">Transcribe a file on this computer</button></div>
         <div id="linkDetails" class="details-box" hidden>
           <button id="linkDetailsBtn" type="button" class="ghost small">Details</button>
           <pre id="linkDetailsText" hidden></pre>
@@ -53,16 +54,36 @@
             <div class="row">
               <span class="label">Type</span>
               <div class="seg" id="typeSeg">
-                <button type="button" data-v="video">Video (MP4)</button>
+                <button type="button" data-v="video">Video</button>
                 <button type="button" data-v="small">Small video</button>
-                <button type="button" data-v="mp3">Audio (MP3)</button>
-                <button type="button" data-v="m4a">Audio (M4A)</button>
+                <button type="button" data-v="mp3">MP3</button>
+                <button type="button" data-v="m4a">M4A</button>
+                <button type="button" data-v="transcript">Transcript</button>
               </div>
             </div>
 
             <div class="row" id="qualityRow">
               <span class="label">Quality</span>
               <select id="quality"></select>
+            </div>
+
+            <div id="sttRows" hidden>
+              <div class="row">
+                <span class="label">Language</span>
+                <select id="sttLang"></select>
+              </div>
+              <div class="row">
+                <span class="label">Accuracy</span>
+                <select id="sttModel"></select>
+              </div>
+              <div class="row">
+                <span class="label"></span>
+                <div class="extras">
+                  <label class="check"><input type="checkbox" id="sttTranslate" /> Translate to English</label>
+                  <label class="check"><input type="checkbox" id="sttSrt" /> Subtitles (SRT) too</label>
+                  <label class="check"><input type="checkbox" id="sttKeep" /> Keep the video</label>
+                </div>
+              </div>
             </div>
 
             <div class="row" id="sizeRow" hidden>
@@ -173,6 +194,11 @@
           <span class="label wide">Copied links</span>
           <label class="check"><input type="checkbox" id="clipOn" /> Fill in a link copied before switching to the app</label>
         </div>
+        <div class="row">
+          <span class="label wide">Transcripts</span>
+          <label class="check" id="gpuOpt"><input type="checkbox" id="gpuOn" /> Use the NVIDIA graphics card</label>
+        </div>
+        <p class="dim small indent" id="gpuHint">Transcripts finish several times faster on an NVIDIA card. Switching it on downloads the larger copy of the speech program made for those cards.</p>
         <div class="row">
           <span class="label wide">Sign-in</span>
           <label class="check"><input type="checkbox" id="firefoxOn" /> Use my Firefox sign-in for pasted links</label>

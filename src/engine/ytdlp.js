@@ -225,7 +225,10 @@ export function downloadArgs(url, opts) {
   a.push(opts.wholePlaylist ? '--yes-playlist' : '--no-playlist');
   if (opts.wholePlaylist && opts.playlistItems?.length) a.push('--playlist-items', opts.playlistItems.join(','));
 
-  if (opts.type === 'mp3') {
+  if (opts.type === 'transcript') {
+    // only the sound is needed for a transcript, and FFmpeg reads it as it comes
+    a.push('-f', 'ba/b');
+  } else if (opts.type === 'mp3') {
     a.push('-f', 'ba/b', '-x', '--audio-format', 'mp3', '--audio-quality', '0', '--embed-thumbnail', '--embed-metadata');
   } else if (opts.type === 'm4a') {
     a.push('-f', 'ba[ext=m4a]/ba/b', '-x', '--audio-format', 'm4a', '--embed-thumbnail', '--embed-metadata');

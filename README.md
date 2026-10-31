@@ -27,7 +27,7 @@ On a Mac, open the DMG and drag Video Downloader into Applications. macOS blocks
 ## Using it
 
 1. Paste a link into the box. The app reads it on paste, or press Look up. A link copied before switching to the app fills in by itself.
-2. Pick Video (MP4), Small video, Audio (MP3) or Audio (M4A).
+2. Pick Video, Small video, MP3, M4A or Transcript.
 3. Pick the quality, or the size limit for a small video.
 4. Pick Whole video, Choose parts or Chapters under Part.
 5. Pick subtitles and tick anything under Also.
@@ -41,6 +41,22 @@ On a Mac, open the DMG and drag Video Downloader into Applications. macOS blocks
 | One file per chapter | Saves each chapter as its own file in a folder named after the video, as well as the whole video. It only shows for videos with chapters and only goes with Whole video. |
 | Cut sponsor segments | Removes sponsor reads, self-promotion and subscribe reminders, using SponsorBlock's shared list. YouTube only. |
 | Send to phone | Puts the finished file in Desktop Connector's Send to devices list. It only shows while Desktop Connector is open. Finished downloads also get a Send to phone button. |
+
+## Transcripts
+
+Transcript turns the speech in a video into a text file, using whisper.cpp on this computer with no account or upload. The app downloads only the sound, writes `Clinic tour.txt` with a new paragraph at each pause, then deletes the sound so only the text is left. Tick Keep the video to save the video next to it.
+
+| Choice | What it does |
+| --- | --- |
+| Language | Detect it works for most videos. Picking the language helps with short clips and mixed speech. |
+| Accuracy | Fast (148 MB), Good (190 MB) or Best (574 MB). The model downloads the first time it is used, and copies the Video Editor already has are used instead. |
+| Translate to English | Writes the transcript in English whatever the spoken language, saved as `Clinic tour (English).txt`. |
+| Subtitles (SRT) too | Also saves the transcript with times as an SRT file. |
+| Keep the video | Saves the video as well. Without it, the downloaded sound is deleted once the text is written. |
+
+Transcribe a file on this computer, under the link box, takes a video or audio file already saved here. The transcript is saved next to it and the file itself is never deleted or changed.
+
+On Windows the speech program (a few MB) downloads the first time. Settings has Use the NVIDIA graphics card, which downloads the larger copy made for those cards and transcribes several times faster. The Mac app carries its own copy and uses the Mac's graphics chip already.
 
 ## Parts of a video
 
@@ -92,7 +108,7 @@ The folders keep the app's first name, `ytdownloader`, so settings, the download
 | What | Where |
 | --- | --- |
 | Downloads | the Downloads folder, or the folder picked with Change |
-| yt-dlp, Deno and FFmpeg | `%LOCALAPPDATA%\com.cygnussolutions.ytdownloader\tools` |
+| yt-dlp, Deno, FFmpeg and the speech program and models | `%LOCALAPPDATA%\com.cygnussolutions.ytdownloader\tools` |
 | Sign-in files from the extension | `%LOCALAPPDATA%\com.cygnussolutions.ytdownloader\sign-in`, deleted after each download |
 | Settings and the download list | `%APPDATA%\com.cygnussolutions.ytdownloader` |
 | The same on a Mac | `~/Library/Caches/com.cygnussolutions.ytdownloader` for the tools and sign-in files, `~/Library/Application Support/com.cygnussolutions.ytdownloader` for settings |
@@ -100,7 +116,7 @@ The folders keep the app's first name, `ytdownloader`, so settings, the download
 
 ## For the Video Editor
 
-The code that runs yt-dlp is in `src/engine`: `tools.js` installs the programs, `ytdlp.js` reads links and builds the download command, `shrink.js` makes small videos and `queue.js` runs the download list. They only use the `src/backend` files, which are the same as the editor's, plus an `env` option added to `proc_spawn` and a kill that also stops FFmpeg. The extension talks to `src-tauri/src/ext_server.rs` on 127.0.0.1 port 47821, which only answers this computer and only takes links from a browser extension.
+The code that runs yt-dlp is in `src/engine`: `tools.js` installs the programs, `ytdlp.js` reads links and builds the download command, `shrink.js` makes small videos, `transcribe.js` runs whisper.cpp and `queue.js` runs the download list. They only use the `src/backend` files, which are the same as the editor's, plus an `env` option added to `proc_spawn` and a kill that also stops FFmpeg. The extension talks to `src-tauri/src/ext_server.rs` on 127.0.0.1 port 47821, which only answers this computer and only takes links from a browser extension.
 
 ## Tests
 

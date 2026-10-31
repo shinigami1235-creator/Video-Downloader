@@ -6,6 +6,7 @@ import { runProcess, newJobId } from '../backend/proc.js';
 import { tools, ytdlpEnv, toolsDir } from './tools.js';
 import { downloadArgs, parseLine, plainError, rawDetails, stepName } from './ytdlp.js';
 import { shrinkVideo } from './shrink.js';
+import { transcribeFile } from './transcribe.js';
 
 const HISTORY_KEEP = 60;
 const historyFile = () => join(paths.appData, 'history.json');
@@ -149,16 +150,22 @@ export class Queue {
       }
     };
     const small = it.opts.type === 'small';
+    const transcript = it.opts.type === 'transcript';
+    const local = it.opts.localFile || '';
+    // with Keep the video on, the video downloads as usual and is transcribed where it lands
+    const keep = transcript && !!it.opts.keepVideo;
     const sections = it.opts.sections?.length ? it.opts.sections : null;
     const joining = !!(sections && sections.length > 1 && it.opts.join);
-    // a small video or parts to join download into a work folder first,
-    // and only the finished file lands in the save folder
-    const workDir = small || joining ? toolsDir('work', it.id) : null;
+    // a small video, parts to join and the sound for a transcript download into a work
+    // folder first, and only the finished file lands in the save folder
+    const workDir = small || joining || (transcript && !keep) ? toolsDir('work', it.id) : null;
+    const base = keep ? { ...it.opts, type: 'video' } : it.opts;
     // each part is its own yt-dlp run so it can carry its own file name
-    const runs = sections ? sections.map((part) => ({ ...it.opts, part, sections: null })) : [it.opts];
+    const runs = local ? [] : sections ? sections.map((part) => ({ ...base, part, sections: null })) : [base];
     it.partCount = sections ? sections.length : 0;
     try {
       if (workDir) await mkdir(workDir);
+      if (local) it.files = [local];
       for (const [k, opts] of runs.entries()) {
         it.partIndex = sections ? k + 1 : 0;
         const before = errors.length;
@@ -173,7 +180,8 @@ export class Queue {
       }
       if (!it.files.length && errors.length) throw Object.assign(new Error('failed'), { tail: errors });
       if (joining && it.files.length > 1) await this.joinParts(it, workDir, controller.signal, paint);
-      if (small) await this.shrinkAll(it, workDir, controller.signal, paint);
+      if (transcript) await this.transcribeAll(it, { keepSource: keep || !!local, signal: controller.signal, paint });
+      else if (small) await this.shrinkAll(it, workDir, controller.signal, paint);
       else if (workDir) await this.moveOut(it);
       if (it.opts.sendToPhone) await this.sendToPhone(it, true);
       it.status = 'done';
@@ -279,6 +287,45 @@ export class Queue {
       out.push(dest);
     }
     it.files = out;
+  }
+
+  /**
+   * Turns the speech in each downloaded file into a .txt (and .srt) in the save folder.
+   * The sound itself sits in the work folder and goes when the download finishes, unless
+   * it is a kept video or a file that was already on this computer.
+   */
+  async transcribeAll(it, { keepSource, signal, paint }) {
+    const o = it.opts;
+    const out = [];
+    for (const [i, file] of it.files.entries()) {
+      // "Clinic tour 1080p.mp4" becomes "Clinic tour"
+      let name = basename(file).replace(/\.[^.]+$/, '').replace(/ \d{3,4}p$/, '');
+      if (o.translate) name += ' (English)';
+      const prefix = it.files.length > 1 ? `File ${i + 1} of ${it.files.length} · ` : '';
+      it.status = 'processing';
+      it.percent = 0;
+      try {
+        const written = await transcribeFile(file, join(o.folder, safeName(name)), {
+          model: o.model,
+          language: o.language,
+          translate: o.translate,
+          srt: o.srt,
+          gpu: o.gpu,
+          signal,
+          onProgress: (f, step) => {
+            it.percent = f * 100;
+            it.step = prefix + (step === 'Listening' ? `Listening · ${Math.floor(f * 100)}%` : step + (f > 0 && f < 1 ? ` · ${Math.floor(f * 100)}%` : ''));
+            paint();
+          },
+        });
+        out.push(...written);
+      } catch (e) {
+        if (e?.name === 'AbortError') throw e;
+        throw Object.assign(new Error(e?.message || String(e)), { shrink: true });
+      }
+    }
+    it.transcriptFiles = out;
+    it.files = keepSource ? [...it.files, ...out] : out;
   }
 
   /** Shrinks each downloaded video into the save folder under the size limit. */

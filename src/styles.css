@@ -789,3 +789,15 @@ select {
 .item .details-text {
   grid-column: 1 / -1;
 }
+
+.file-row {
+  margin-top: 8px;
+}
+
+.file-row button {
+  color: var(--dim);
+}
+
+#sttRows .row:first-child {
+  margin-top: 10px;
+}

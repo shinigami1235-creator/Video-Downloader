@@ -73,7 +73,7 @@ export function downloadTo(url, dest, onProgress) {
   return invoke('download', { jobId, url, dest }).finally(off);
 }
 
-async function downloadAndUnzip(urls, folder, onProgress) {
+export async function downloadAndUnzip(urls, folder, onProgress) {
   const dir = toolsDir(folder);
   await mkdir(dir);
   const zip = join(dir, 'download.zip');

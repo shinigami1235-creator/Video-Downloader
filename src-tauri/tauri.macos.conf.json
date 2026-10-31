@@ -1,7 +1,10 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "bundle": {
-    "targets": ["app", "dmg"],
+    "targets": [
+      "app",
+      "dmg"
+    ],
     "macOS": {
       "minimumSystemVersion": "11.0",
       "signingIdentity": "-",
@@ -13,6 +16,9 @@
       "icons/128x128@2x.png",
       "icons/icon.png",
       "icons/icon.icns"
+    ],
+    "externalBin": [
+      "binaries/whisper-cli"
     ]
   }
 }

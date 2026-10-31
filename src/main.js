@@ -6,6 +6,7 @@ import './styles.css';
 import { initBackend, paths, join, invoke, on, readJson, writeJson, openDialog, mkdir, remove, writeText, list, exists } from './backend/index.js';
 import { locateTools, missingTools, installTools, SETUP_STEPS, stepSize, updateYtdlp, ytdlpVersion, toolsDir, tools } from './engine/tools.js';
 import { lookUp, isYouTube } from './engine/ytdlp.js';
+import { MODELS, LANGUAGES } from './engine/transcribe.js';
 import { Queue } from './engine/queue.js';
 
 const $ = (id) => document.getElementById(id);
@@ -26,6 +27,12 @@ const settings = {
   clipboard: true,
   firefox: false,
   lastUpdate: 0,
+  sttLang: 'auto',
+  sttModel: 'good',
+  sttTranslate: false,
+  sttSrt: false,
+  sttKeep: false,
+  gpu: false,
 };
 
 /**
@@ -552,7 +559,7 @@ function readParts() {
 
 /** The type for this card. A song with no picture can only be saved as audio. */
 function cardType() {
-  if (current?.mode === 'one' && current.info.audioOnly && !['mp3', 'm4a'].includes(settings.type)) return 'mp3';
+  if (current?.mode === 'one' && current.info.audioOnly && !['mp3', 'm4a', 'transcript'].includes(settings.type)) return 'mp3';
   return settings.type;
 }
 
@@ -566,7 +573,15 @@ function renderOptions() {
   for (const v of ['video', 'small']) $('typeSeg').querySelector(`[data-v="${v}"]`).hidden = audioOnly;
   setSeg($('typeSeg'), type);
   $('pickBox').hidden = c.mode !== 'list';
-  $('qualityRow').hidden = type !== 'video';
+  const stt = type === 'transcript';
+  $('sttRows').hidden = !stt;
+  $('sttLang').value = settings.sttLang;
+  $('sttModel').value = settings.sttModel;
+  $('sttTranslate').checked = settings.sttTranslate;
+  $('sttSrt').checked = settings.sttSrt;
+  $('sttKeep').checked = settings.sttKeep;
+  $('sttKeep').closest('label').hidden = audioOnly;
+  $('qualityRow').hidden = !(type === 'video' || (stt && settings.sttKeep && !audioOnly));
   $('sizeRow').hidden = type !== 'small';
   $('partRow').hidden = !one || !one.duration;
   if ($('partRow').hidden) {
@@ -575,7 +590,7 @@ function renderOptions() {
     $('joinRow').hidden = true;
   }
   $('chaptersBtn').hidden = !(one && one.chapterList?.length > 1);
-  $('subsRow').hidden = one ? !(one.subs || []).length : false;
+  $('subsRow').hidden = stt || (one ? !(one.subs || []).length : false);
   $('sizeLimit').value = String(settings.smallMB);
   renderSizeHint();
 
@@ -630,7 +645,32 @@ function commonOpts() {
     thumb: $('thumbOn').checked,
     sponsor: !$('sponsorOpt').hidden && $('sponsorOn').checked,
     sendToPhone: !$('phoneOpt').hidden && $('phoneOn').checked,
+    ...sttOpts(),
   };
+}
+
+/** The transcript choices, also used for a file picked from this computer. */
+function sttOpts() {
+  return {
+    language: settings.sttLang,
+    model: settings.sttModel,
+    translate: settings.sttTranslate,
+    srt: settings.sttSrt,
+    keepVideo: settings.sttKeep && !current?.info?.audioOnly,
+    gpu: paths.platform === 'windows' && settings.gpu,
+  };
+}
+
+/** Transcribes a video or sound file already on this computer, which stays where it is. */
+async function transcribeLocalFile() {
+  const file = await openDialog({
+    title: 'Pick a video or sound file to transcribe',
+    filters: [{ name: 'Video and sound', extensions: ['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v', 'mp3', 'm4a', 'wav', 'aac', 'flac', 'ogg', 'opus', 'wma'] }],
+  });
+  if (!file) return;
+  await mkdir(settings.folder).catch(() => {});
+  const name = String(file).split(/[\\/]/).pop();
+  queue.add({ url: file, title: name, thumb: '' }, { type: 'transcript', folder: settings.folder, localFile: file, ...sttOpts(), keepVideo: false });
 }
 
 /**
@@ -732,6 +772,7 @@ function typeName(it) {
   if (o.type === 'mp3') return 'MP3';
   if (o.type === 'm4a') return 'M4A';
   if (o.type === 'small') return `MP4 under ${o.smallMB} MB`;
+  if (o.type === 'transcript') return o.srt ? 'TXT and SRT' : 'TXT';
   return o.height ? `MP4 ${o.height}p` : 'MP4';
 }
 
@@ -764,6 +805,7 @@ function statusText(it) {
       }
       if (it.partCount > 1 && it.files.length > 1) return `Saved ${it.files.length} parts as ${typeName(it)}` + (it.failedCount ? ` · ${it.failedCount} failed` : '') + phoneText(it);
       if (it.partCount > 1) return `Saved ${it.partCount} parts joined as ${typeName(it)}` + phoneText(it);
+      if (it.opts?.type === 'transcript') return `Saved the transcript (${typeName(it)})` + (it.opts.keepVideo ? ' and the video' : '') + phoneText(it);
       return `Saved as ${typeName(it)}` + phoneText(it);
     }
     case 'cancelled':
@@ -782,7 +824,7 @@ function buttons(it) {
   const b = [];
   if (it.status === 'done' && it.files?.length) {
     if (connectorUp && it.phone !== 'sending') b.push(`<button class="small ghost" data-a="phone">Send to phone</button>`);
-    if (!it.playlist && it.files.length === 1) b.push(`<button class="small ghost" data-a="open">Open</button>`);
+    if (!it.playlist && (it.files.length === 1 || it.opts?.type === 'transcript')) b.push(`<button class="small ghost" data-a="open">Open</button>`);
     b.push(`<button class="small ghost" data-a="reveal">Show in folder</button>`);
   }
   if (it.status === 'failed' && it.errorDetails) b.push(`<button class="small ghost" data-a="details">Details</button>`);
@@ -846,7 +888,7 @@ function onListClick(e) {
     pre.textContent = it.errorDetails;
     li.append(pre);
   }
-  else if (a === 'open') invoke('open_path', { path: it.files[it.files.length - 1] }).catch(() => {});
+  else if (a === 'open') invoke('open_path', { path: it.files.find((f) => /\.txt$/i.test(f)) || it.files[it.files.length - 1] }).catch(() => {});
   else if (a === 'reveal') invoke('reveal_path', { path: it.files[it.files.length - 1] }).catch(() => {});
 }
 
@@ -885,6 +927,9 @@ async function openSettings() {
   setSeg($('limitSeg'), settings.limit);
   $('clipOn').checked = settings.clipboard;
   $('firefoxOn').checked = settings.firefox;
+  $('gpuOn').checked = settings.gpu;
+  $('gpuOpt').closest('.row').hidden = paths.platform !== 'windows';
+  $('gpuHint').hidden = paths.platform !== 'windows';
   $('extState').textContent = extensionSeen ? 'Connected' : '';
   show($('updateMsg'), '');
   $('version').textContent = (await ytdlpVersion()) || 'not found';
@@ -1025,6 +1070,28 @@ async function start() {
       $('lookBtn').disabled = false;
       show($('linkMsg'), '');
     }
+  });
+  $('sttLang').innerHTML = LANGUAGES.map(([code, name]) => `<option value="${code}">${name}</option>`).join('');
+  $('sttModel').innerHTML = Object.entries(MODELS)
+    .map(([k, m]) => `<option value="${k}">${m.label} · ${m.size}</option>`)
+    .join('');
+  for (const [id, key] of [['sttLang', 'sttLang'], ['sttModel', 'sttModel']]) {
+    $(id).addEventListener('change', () => {
+      settings[key] = $(id).value;
+      saveSettings();
+    });
+  }
+  for (const [id, key] of [['sttTranslate', 'sttTranslate'], ['sttSrt', 'sttSrt'], ['sttKeep', 'sttKeep']]) {
+    $(id).addEventListener('change', () => {
+      settings[key] = $(id).checked;
+      saveSettings();
+      if (id === 'sttKeep') renderOptions();
+    });
+  }
+  $('sttFileBtn').addEventListener('click', transcribeLocalFile);
+  $('gpuOn').addEventListener('change', () => {
+    settings.gpu = $('gpuOn').checked;
+    saveSettings();
   });
   onSeg($('typeSeg'), (v) => {
     settings.type = v;
