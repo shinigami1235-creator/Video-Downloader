@@ -81,6 +81,29 @@ export async function ensureWhisper(modelKey, { gpu = false, onDownload } = {}) 
   return { bin, model };
 }
 
+/**
+ * Reads the Words to get right box. A plain line is a word to listen for; a line like
+ * "Flaude = Claude" also swaps every Flaude in the transcript for Claude.
+ * Returns { listen: ['Claude', ...], fixes: [[/\bFlaude\b/gi, 'Claude'], ...] }.
+ */
+export function readWords(text) {
+  const listen = [];
+  const fixes = [];
+  const esc = (w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const line of String(text || '').split(/\r?\n|,/)) {
+    const [from, to] = line.split(/\s*(?:=|->|→)\s*/).map((w) => w.trim());
+    const word = to || from;
+    if (!word) continue;
+    if (!listen.includes(word)) listen.push(word);
+    if (to && from) fixes.push([new RegExp(`(?<![\\p{L}\\p{N}])${esc(from)}(?![\\p{L}\\p{N}])`, 'giu'), to]);
+  }
+  // a listed word written in other capitals, like GiD or claude, takes the listed spelling
+  for (const w of listen) fixes.push([new RegExp(`(?<![\\p{L}\\p{N}])${esc(w)}(?![\\p{L}\\p{N}])`, 'giu'), w]);
+  return { listen, fixes };
+}
+
+const applyFixes = (text, fixes) => fixes.reduce((t, [re, to]) => t.replace(re, to), text);
+
 /** Segments into paragraphs, starting a new one after a pause of 1.5 seconds or more. */
 export function toParagraphs(segments) {
   const paras = [];
@@ -106,7 +129,7 @@ export function toParagraphs(segments) {
  * which can be any video or audio file. Returns the files written.
  * onProgress(fraction, step) runs as it goes.
  */
-export async function transcribeFile(input, outBase, { model = 'good', language = 'auto', translate = false, srt = false, gpu = false, signal, onProgress } = {}) {
+export async function transcribeFile(input, outBase, { model = 'good', language = 'auto', translate = false, srt = false, gpu = false, words = '', signal, onProgress } = {}) {
   const w = await ensureWhisper(model, {
     gpu,
     onDownload: (label, r, t) => onProgress?.(t > 0 ? r / t : 0, label),
@@ -125,6 +148,9 @@ export async function transcribeFile(input, outBase, { model = 'good', language 
     const args = ['-m', w.model, '-f', wav, '-l', language || 'auto', '-oj', '-of', base, '-t', String(threads), '-pp'];
     if (srt) args.push('-osrt');
     if (translate) args.push('-tr');
+    const { listen, fixes } = readWords(words);
+    // whisper spells names the way it last saw them, so the list goes in front of every stretch it hears
+    if (listen.length) args.push('--prompt', listen.join(', ') + '.', '--carry-initial-prompt');
     onProgress?.(0, 'Listening');
     await runProcess(w.bin, args, {
       signal,
@@ -143,13 +169,13 @@ export async function transcribeFile(input, outBase, { model = 'good', language 
       from: (s.offsets?.from || 0) / 1000,
       to: (s.offsets?.to || 0) / 1000,
     }));
-    const text = toParagraphs(segments);
+    const text = applyFixes(toParagraphs(segments), fixes);
     if (!text) throw new Error('No speech was found in it.');
     const out = [outBase + '.txt'];
     await mkdir(dirname(outBase));
     await writeText(out[0], text + '\n');
     if (srt) {
-      await writeText(outBase + '.srt', await readText(base + '.srt'));
+      await writeText(outBase + '.srt', applyFixes(await readText(base + '.srt'), fixes));
       out.push(outBase + '.srt');
     }
     return out;

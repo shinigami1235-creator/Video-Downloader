@@ -33,6 +33,7 @@ const settings = {
   sttSrt: false,
   sttKeep: false,
   gpu: false,
+  sttWords: '',
 };
 
 /**
@@ -658,6 +659,7 @@ function sttOpts() {
     srt: settings.sttSrt,
     keepVideo: settings.sttKeep && !current?.info?.audioOnly,
     gpu: paths.platform === 'windows' && settings.gpu,
+    words: settings.sttWords,
   };
 }
 
@@ -928,6 +930,7 @@ async function openSettings() {
   $('clipOn').checked = settings.clipboard;
   $('firefoxOn').checked = settings.firefox;
   $('gpuOn').checked = settings.gpu;
+  $('sttWords').value = settings.sttWords;
   $('gpuOpt').closest('.row').hidden = paths.platform !== 'windows';
   $('gpuHint').hidden = paths.platform !== 'windows';
   $('extState').textContent = extensionSeen ? 'Connected' : '';
@@ -1089,6 +1092,10 @@ async function start() {
     });
   }
   $('sttFileBtn').addEventListener('click', transcribeLocalFile);
+  $('sttWords').addEventListener('input', () => {
+    settings.sttWords = $('sttWords').value;
+    saveSettings();
+  });
   $('gpuOn').addEventListener('change', () => {
     settings.gpu = $('gpuOn').checked;
     saveSettings();

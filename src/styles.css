@@ -301,6 +301,7 @@ button.danger:hover {
 }
 
 select,
+textarea,
 .times input {
   background: var(--bg);
   border: 1px solid var(--line2);
@@ -310,6 +311,7 @@ select,
 }
 
 select:focus,
+textarea:focus,
 .times input:focus {
   border-color: var(--gold);
 }
@@ -800,4 +802,20 @@ select {
 
 #sttRows .row:first-child {
   margin-top: 10px;
+}
+
+.row.align-top {
+  align-items: flex-start;
+}
+
+.row.align-top .label {
+  padding-top: 7px;
+}
+
+textarea {
+  flex: 1;
+  min-width: 200px;
+  color: inherit;
+  font: inherit;
+  resize: vertical;
 }

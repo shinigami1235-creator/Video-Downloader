@@ -45,8 +45,12 @@ console.log('transcript:', JSON.stringify(text));
 ok(/clinic/i.test(text) && /treatment/i.test(text), 'the words were heard');
 ok(workLeft().length === 0, 'the downloaded sound was deleted: ' + workLeft());
 
-// 2. keeping the video, with subtitles
+// 2. keeping the video, with subtitles and a word to fix
 rmSync(DL, { recursive: true, force: true });
+await app.click('#settingsBtn');
+await app.fill('#sttWords', 'Claude\ntreatment = therapy');
+await app.screenshot({ path: new URL('./shots/61-words.png', import.meta.url).pathname });
+await app.click('#settingsClose');
 await lookup();
 await app.click('#typeSeg [data-v="transcript"]');
 await app.check('#sttKeep');
@@ -57,6 +61,11 @@ await waitDone(2);
 files = readdirSync(DL).sort();
 console.log('files:', files, await app.textContent('.item .status'));
 ok(files.includes('talk.mp4') && files.includes('talk.txt') && files.includes('talk.srt'), 'video, text and subtitles saved');
+const fixed = readFileSync(`${DL}/talk.txt`, 'utf8') + readFileSync(`${DL}/talk.srt`, 'utf8');
+ok(/therapy/.test(fixed) && !/treatment/i.test(fixed), 'treatment was swapped for therapy in the text and the subtitles');
+await app.click('#settingsBtn');
+await app.fill('#sttWords', '');
+await app.click('#settingsClose');
 
 // 3. a file already on this computer
 rmSync(DL, { recursive: true, force: true });

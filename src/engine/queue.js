@@ -311,6 +311,7 @@ export class Queue {
           translate: o.translate,
           srt: o.srt,
           gpu: o.gpu,
+          words: o.words,
           signal,
           onProgress: (f, step) => {
             it.percent = f * 100;

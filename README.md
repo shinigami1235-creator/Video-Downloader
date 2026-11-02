@@ -54,6 +54,8 @@ Transcript turns the speech in a video into a text file, using whisper.cpp on th
 | Subtitles (SRT) too | Also saves the transcript with times as an SRT file. |
 | Keep the video | Saves the video as well. Without it, the downloaded sound is deleted once the text is written. |
 
+Names and brand words often come out wrong, like Claude written as Flaude. Settings has Words to get right, which takes one name per line, and the speech program listens for those in every transcript. A line like `Flaude = Claude` swaps every Flaude in the text and the subtitles for Claude, for the words it still gets wrong.
+
 Transcribe a file on this computer, under the link box, takes a video or audio file already saved here. The transcript is saved next to it and the file itself is never deleted or changed.
 
 On Windows the speech program (a few MB) downloads the first time. Settings has Use the NVIDIA graphics card, which downloads the larger copy made for those cards and transcribes several times faster. The Mac app carries its own copy and uses the Mac's graphics chip already.
