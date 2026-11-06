@@ -79,6 +79,8 @@ Videos are saved as H.264 MP4 up to 1080p since that plays everywhere, the Video
 
 The extension works in Chrome and Edge. Right-clicking a video gives Download with Video Downloader, and right-clicking anywhere else on a page gives Find videos on this page. Clicking the extension's icon lists every video on the page with a tick box. The app has to be open since the extension only passes links to it.
 
+Moving the mouse over a video shows a Download button that sends that video to the app. It sits on the top-left corner since IDM puts its own panel on the top-right. Untick Show a Download button on videos in the extension's list to hide it.
+
 The extension also notes the video streams a page loads while a video plays. That catches videos a site starts by script, which the app can't find from the page link alone, so play the video for a few seconds before opening the list.
 
 Links sent from the extension carry the browser's sign-in for that site, which Instagram, members-only and age-restricted videos need. Untick Use my sign-in for this site in the extension's list to send links without it. The app deletes the sign-in file once the download is done, and clears any left over each time it starts.
@@ -92,6 +94,8 @@ To install it:
 5. Click the jigsaw icon next to the address bar and press the pin beside Video Downloader.
 
 After an app update, press Open the extension folder again to bring the copy up to date, then press the reload arrow on the extension's card in `chrome://extensions`. On a Mac the steps are the same in Chrome and Edge.
+
+Streams that come in pieces, which Facebook, TikTok and most HLS players use, download 4 pieces at a time.
 
 DRM-protected video from Netflix, paid streaming and most paid course platforms can't be downloaded, and the app says so.
 

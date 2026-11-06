@@ -218,6 +218,8 @@ function literalName(title) {
 export function downloadArgs(url, opts) {
   const a = [...baseArgs(), ...authArgs(opts.auth)];
   a.push('--newline', '--progress', '--no-mtime', '--no-simulate', '--ignore-errors');
+  // streams that come in pieces, like Facebook's, TikTok's and most HLS players, download 4 pieces at a time
+  a.push('--concurrent-fragments', '4');
   a.push('--progress-template', 'download:@@P|%(progress.status)s|%(progress.downloaded_bytes)s|%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s|%(progress.tmpfilename)s');
   a.push('--progress-template', 'postprocess:@@Q|%(progress.status)s|%(progress.postprocessor)s');
   a.push('--print', 'before_dl:@@T|%(playlist_index|)s|%(n_entries|)s|%(duration|)s|%(title)s');

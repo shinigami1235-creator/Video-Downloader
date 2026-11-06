@@ -1,5 +1,5 @@
-// Adds the right-click menu and remembers the video streams each tab loads,
-// which the popup lists alongside the players it finds on the page.
+// Adds the right-click menu, answers the Download button on players and remembers the
+// video streams each tab loads, which the popup lists alongside the players it finds.
 
 import { sendToApp, cookiesFor, isVideoRequest, streamKind, cleanUrl } from './common.js';
 
@@ -60,30 +60,50 @@ function notify(message) {
   chrome.notifications.create({ type: 'basic', iconUrl: 'icons/icon128.png', title: 'Video Downloader', message });
 }
 
+/** Works out what to send for a video the user picked: its file, the player's frame, or the page. */
+async function itemForVideo({ src, frameUrl, page, tabId }) {
+  if (src && /^https?:/i.test(src)) return { url: src, title: page.title, kind: 'media' };
+  if (frameUrl && frameUrl !== page.url) return { url: frameUrl, title: '', kind: 'embed' };
+  // the player plays a stream it assembles itself, so send the stream it loaded
+  const s = tabId != null ? await latestStream(tabId) : null;
+  return s ? { url: s.url, title: page.title, kind: 'media' } : { url: page.url, title: page.title, kind: 'page' };
+}
+
+/** Sends one item with the browser's sign-in. Returns false when the app is closed. */
+async function send(page, item) {
+  const { signIn = true } = await chrome.storage.local.get('signIn');
+  const cookies = signIn ? await cookiesFor([page.url, item.url]) : [];
+  try {
+    return await sendToApp({ page, items: [item], cookies });
+  } catch {
+    return false;
+  }
+}
+
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   const page = { url: tab?.url || info.pageUrl || '', title: tab?.title || '' };
   let item = null;
   if (info.menuItemId === 'link' && info.linkUrl) {
     item = { url: info.linkUrl, title: info.selectionText || '', kind: 'link' };
   } else if (info.menuItemId === 'video') {
-    const src = info.srcUrl && /^https?:/i.test(info.srcUrl) ? info.srcUrl : '';
-    if (src) item = { url: src, title: page.title, kind: 'media' };
-    else if (info.frameUrl && info.frameUrl !== page.url) item = { url: info.frameUrl, title: '', kind: 'embed' };
-    else {
-      // the player plays a stream it assembles itself, so send the stream it loaded
-      const s = tab ? await latestStream(tab.id) : null;
-      item = s ? { url: s.url, title: page.title, kind: 'media' } : { url: page.url, title: page.title, kind: 'page' };
-    }
+    item = await itemForVideo({ src: info.srcUrl, frameUrl: info.frameUrl, page, tabId: tab?.id });
   } else {
     item = { url: page.url, title: page.title, kind: 'page' };
   }
   if (!item?.url) return;
-  const { signIn = true } = await chrome.storage.local.get('signIn');
-  const cookies = signIn ? await cookiesFor([page.url, item.url]) : [];
-  try {
-    const ok = await sendToApp({ page, items: [item], cookies });
-    if (!ok) notify('Open the Video Downloader app, then try again.');
-  } catch {
-    notify('Open the Video Downloader app, then try again.');
-  }
+  if (!(await send(page, item))) notify('Open the Video Downloader app, then try again.');
+});
+
+// ---- the Download button on players (player.js) ------------------------------------
+
+chrome.runtime.onMessage.addListener((msg, sender, reply) => {
+  if (msg?.type !== 'player-download' || !sender.tab) return false;
+  (async () => {
+    const tab = sender.tab;
+    const page = { url: tab.url || '', title: tab.title || msg.title || '' };
+    const frameUrl = sender.frameId ? sender.url || '' : '';
+    const item = await itemForVideo({ src: msg.src, frameUrl, page, tabId: tab.id });
+    reply({ ok: !!item?.url && (await send(page, item)) });
+  })();
+  return true;
 });
