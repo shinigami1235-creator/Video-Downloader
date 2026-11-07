@@ -42,7 +42,7 @@ console.log('status:', status, 'files:', files);
 ok(files.length === 1 && files[0] === 'talk.txt', 'only the transcript is left');
 const text = readFileSync(`${DL}/talk.txt`, 'utf8');
 console.log('transcript:', JSON.stringify(text));
-ok(/clinic/i.test(text) && /treatment/i.test(text), 'the words were heard');
+ok(/laser/i.test(text) && /treatment/i.test(text), 'the words were heard');
 ok(workLeft().length === 0, 'the downloaded sound was deleted: ' + workLeft());
 
 // 2. keeping the video, with subtitles and a word to fix
@@ -77,5 +77,33 @@ console.log('files:', files, await app.textContent('.item .status'));
 ok(files.includes('talk.txt'), 'transcript of the local file saved');
 ok(existsSync(LOCAL), 'the original file is still there');
 ok(!files.includes('talk.mp4'), 'the original was not copied into the save folder');
+
+// 4. a link whose sound-only stream comes down silent, which some Facebook posts do
+rmSync(DL, { recursive: true, force: true });
+await app.fill('#linkInput', 'https://www.facebook.com/reel/1234567890');
+await app.click('#lookBtn');
+await app.waitForSelector('#card:not([hidden])', { timeout: 20000 });
+await app.click('#typeSeg [data-v="transcript"]');
+await app.uncheck('#sttKeep');
+await app.uncheck('#sttSrt');
+await app.click('#downloadBtn');
+await waitDone(4);
+files = readdirSync(DL).sort();
+status = await app.textContent('.item .status');
+console.log('files:', files, status);
+ok(files.length === 1 && /\.txt$/.test(files[0]), 'the whole video was fetched and only the transcript is left');
+ok(/laser/i.test(readFileSync(`${DL}/${files[0]}`, 'utf8')), 'and its words were heard');
+ok(!workLeft().length, 'the work folder was cleared');
+
+// 5. a file on this computer with no sound at all
+await app.evaluate((p) => (window.__testDialogs = [p]), new URL('./media/noaudio.mp4', import.meta.url).pathname);
+await app.click('#sttFileBtn');
+await waitDone(5);
+status = await app.textContent('.item .status');
+ok(/no sound/.test(status), 'a silent file says so: ' + status);
+await app.click('.item button[data-a="details"]');
+const details = await app.textContent('.item pre');
+console.log('details:', details.slice(0, 300));
+ok(/does not contain any stream|matches no streams|Output file/i.test(details), "Details shows FFmpeg's own message");
 console.log('errors:', errors);
 await browser.close();

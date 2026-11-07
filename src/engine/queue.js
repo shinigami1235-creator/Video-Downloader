@@ -166,21 +166,36 @@ export class Queue {
     try {
       if (workDir) await mkdir(workDir);
       if (local) it.files = [local];
-      for (const [k, opts] of runs.entries()) {
-        it.partIndex = sections ? k + 1 : 0;
-        const before = errors.length;
+      const downloadAll = async (list) => {
+        for (const [k, opts] of list.entries()) {
+          it.partIndex = sections ? k + 1 : 0;
+          const before = errors.length;
+          try {
+            await this.runYtdlp(it, downloadArgs(it.url, workDir ? { ...opts, folder: workDir } : opts), controller.signal, errors, paint);
+          } catch (e) {
+            if (e?.name === 'AbortError' || !sections) throw e;
+            // one part failing still leaves the others
+            if (errors.length === before) errors.push(String(e?.tail?.slice(-1)[0] || e?.message || e));
+            it.failedCount += 1;
+          }
+        }
+        if (!it.files.length && errors.length) throw Object.assign(new Error('failed'), { tail: errors });
+      };
+      await downloadAll(runs);
+      if (joining && it.files.length > 1) await this.joinParts(it, workDir, controller.signal, paint);
+      if (transcript) {
         try {
-          await this.runYtdlp(it, downloadArgs(it.url, workDir ? { ...opts, folder: workDir } : opts), controller.signal, errors, paint);
+          await this.transcribeAll(it, { keepSource: keep || !!local, signal: controller.signal, paint });
         } catch (e) {
-          if (e?.name === 'AbortError' || !sections) throw e;
-          // one part failing still leaves the others
-          if (errors.length === before) errors.push(String(e?.tail?.slice(-1)[0] || e?.message || e));
-          it.failedCount += 1;
+          // the sound-only download came down silent, so fetch the whole video and listen to that
+          if (!e?.noSound || local || keep) throw e;
+          it.files = [];
+          it.step = 'The sound-only stream was silent, downloading the video instead';
+          paint(true);
+          await downloadAll(runs.map((o) => ({ ...o, type: 'transcript-video' })));
+          await this.transcribeAll(it, { keepSource: false, signal: controller.signal, paint });
         }
       }
-      if (!it.files.length && errors.length) throw Object.assign(new Error('failed'), { tail: errors });
-      if (joining && it.files.length > 1) await this.joinParts(it, workDir, controller.signal, paint);
-      if (transcript) await this.transcribeAll(it, { keepSource: keep || !!local, signal: controller.signal, paint });
       else if (small) await this.shrinkAll(it, workDir, controller.signal, paint);
       else if (workDir) await this.moveOut(it);
       if (it.opts.sendToPhone) await this.sendToPhone(it, true);
@@ -197,7 +212,7 @@ export class Queue {
         it.percent = 100;
       } else {
         it.status = 'failed';
-        const lines = errors.length ? errors : e?.tail || [String(e?.message || e)];
+        const lines = e?.shrink && e?.tail?.length ? e.tail : errors.length ? errors : e?.tail || [String(e?.message || e)];
         it.error = e?.shrink ? e.message : plainError(lines);
         it.errorDetails = rawDetails(lines);
       }
@@ -322,7 +337,7 @@ export class Queue {
         out.push(...written);
       } catch (e) {
         if (e?.name === 'AbortError') throw e;
-        throw Object.assign(new Error(e?.message || String(e)), { shrink: true });
+        throw Object.assign(new Error(e?.message || String(e)), { shrink: true, noSound: e?.noSound, tail: e?.tail });
       }
     }
     it.transcriptFiles = out;

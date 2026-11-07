@@ -41,10 +41,14 @@ stories = {'_type': 'playlist', 'extractor_key': 'InstagramStory', 'id': 'testus
 STORY_ONE = 'https://www.instagram.com/stories/testuser/4017064269887659683/'
 STORY_POST = 'https://www.instagram.com/p/De_equOkV6j/'
 TALK = 'https://www.youtube.com/watch?v=TESTTALK01'
+# a post whose sound-only stream comes down silent, as some Facebook posts do
+SILENT = 'https://www.facebook.com/reel/1234567890'
 if '-J' in args:
     url = args[-1]
     if url == TALK:
         print(json.dumps(dict(video, id='TESTTALK01', title='Clinic talk test', duration=9, subtitles={}, automatic_captions={}, chapters=[]))); sys.exit(0)
+    if url == SILENT:
+        print(json.dumps(dict(video, id='1234567890', extractor_key='Facebook', webpage_url=SILENT, title='Silent stream test', duration=9, subtitles={}, automatic_captions={}, chapters=[]))); sys.exit(0)
     if url == STORY_ONE:
         print('ERROR: [instagram:story] testuser: This content is unreachable. Use --cookies-from-browser or --cookies for the authentication.', file=sys.stderr); sys.exit(1)
     if url == STORY_POST and '--cookies' in args:
@@ -70,6 +74,7 @@ if url == BIG: args[-1] = SERVER + 'big.mp4'
 if url in (LIST, WATCH_IN_LIST, STORIES): args[-1] = SERVER + 'page.html'
 if url == STORY_POST: args[-1] = SERVER + 'clip.mp4'
 if url == TALK: args[-1] = SERVER + 'talk.mp4'
+if url == SILENT: args[-1] = SERVER + ('noaudio.mp4' if 'ba/b' in args else 'talk.mp4')
 if url == BAD:
     print('ERROR: [youtube] PRIVATE0001: Private video', file=sys.stderr); sys.exit(1)
 os.execvp('yt-dlp', ['yt-dlp'] + args)

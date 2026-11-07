@@ -142,7 +142,7 @@ export async function transcribeFile(input, outBase, { model = 'good', language 
     onProgress?.(0, 'Preparing the sound');
     await runProcess(tools.ffmpeg, ['-hide_banner', '-y', '-i', input, '-vn', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', wav], { signal, keep: 30 }).catch((e) => {
       if (e?.name === 'AbortError') throw e;
-      throw new Error('This file has no sound to transcribe.');
+      throw Object.assign(new Error('This file has no sound to transcribe.'), { noSound: true, tail: e?.tail || [String(e?.message || e)] });
     });
     const threads = Math.max(2, Math.min(8, (navigator.hardwareConcurrency || 4) - 1));
     const args = ['-m', w.model, '-f', wav, '-l', language || 'auto', '-oj', '-of', base, '-t', String(threads), '-pp'];
@@ -161,7 +161,7 @@ export async function transcribeFile(input, outBase, { model = 'good', language 
       },
     }).catch((e) => {
       if (e?.name === 'AbortError') throw e;
-      throw new Error('The speech program stopped with an error.');
+      throw Object.assign(new Error('The speech program stopped with an error.'), { tail: e?.tail || [String(e?.message || e)] });
     });
     const json = JSON.parse(await readText(base + '.json'));
     const segments = (json.transcription || []).map((s) => ({

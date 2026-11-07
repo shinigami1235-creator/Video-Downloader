@@ -227,7 +227,11 @@ export function downloadArgs(url, opts) {
   a.push(opts.wholePlaylist ? '--yes-playlist' : '--no-playlist');
   if (opts.wholePlaylist && opts.playlistItems?.length) a.push('--playlist-items', opts.playlistItems.join(','));
 
-  if (opts.type === 'transcript') {
+  if (opts.type === 'transcript-video') {
+    // some sites, Facebook among them, list a sound-only stream that comes down silent,
+    // so the transcript falls back to a small copy of the whole video
+    a.push('-f', 'b/bv*+ba', '-S', 'res:480', '--merge-output-format', 'mp4');
+  } else if (opts.type === 'transcript') {
     // only the sound is needed for a transcript, and FFmpeg reads it as it comes
     a.push('-f', 'ba/b');
   } else if (opts.type === 'mp3') {
