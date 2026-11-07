@@ -79,7 +79,7 @@ Videos are saved as H.264 MP4 up to 1080p since that plays everywhere, the Video
 
 The extension works in Chrome and Edge. Right-clicking a video gives Download with Video Downloader, and right-clicking anywhere else on a page gives Find videos on this page. Clicking the extension's icon lists every video on the page with a tick box. The app has to be open since the extension only passes links to it.
 
-Moving the mouse over a video shows a Download button that sends that video to the app. It sits on the top-left corner since IDM puts its own panel on the top-right. Untick Show a Download button on videos in the extension's list to hide it.
+The extension can also put a Download button on a video while the mouse is over it, which sends that video to the app. It is off until switched on, with any of these: Show the Download button on videos in the right-click menu, the same tick box in the extension's list, or Alt+Shift+D. The button sits on the top-left corner since IDM puts its own panel on the top-right.
 
 The extension also notes the video streams a page loads while a video plays. That catches videos a site starts by script, which the app can't find from the page link alone, so play the video for a few seconds before opening the list.
 

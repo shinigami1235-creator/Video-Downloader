@@ -26,14 +26,31 @@ const button = (p) => p.evaluate(() => {
   return h ? { shown: h.style.display !== 'none', transform: h.style.transform } : null;
 });
 
-// 1. a video file on the page
+const extId = worker.url().split('/')[2];
+const cmds = await worker.evaluate(() => chrome.commands.getAll());
+ok(cmds.some((c) => c.name === 'toggle-button' && /Shift\+D|⇧D/.test(c.shortcut || '')), 'Alt+Shift+D switches the button: ' + JSON.stringify(cmds.map((c) => c.shortcut)));
+
+// 0. off until switched on
 const page = await ctx.newPage();
 page.on('pageerror', (e) => fail('page error ' + e));
 await page.goto('http://127.0.0.1:8099/ext.html');
 await page.waitForTimeout(800);
+const box = await page.locator('video').boundingBox();
+await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+await page.waitForTimeout(400);
+ok(!(await button(page))?.shown, 'no button before it is switched on');
+const tabId = await worker.evaluate(async () => (await chrome.tabs.query({ url: 'http://127.0.0.1:8099/*' }))[0].id);
+let popup = await ctx.newPage();
+await popup.goto(`chrome-extension://${extId}/popup.html?tab=${tabId}`);
+await popup.waitForTimeout(800);
+ok(!(await popup.isChecked('#playerButton')), 'the popup shows it off');
+await popup.check('#playerButton');
+await popup.close();
+await page.mouse.move(5, 650);
+
+// 1. a video file on the page
 let b = await button(page);
 ok(!b?.shown, 'the button waits for the mouse');
-const box = await page.locator('video').boundingBox();
 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 await page.waitForTimeout(400);
 b = await button(page);
@@ -65,9 +82,8 @@ console.log('sent:', JSON.stringify(sent?.items));
 ok(sent?.items?.[0]?.kind === 'embed' && /inner\.html$/.test(sent.items[0].url), "the player's own page went to the app");
 
 // 3. switched off in the popup
-const tabId = await worker.evaluate(async () => (await chrome.tabs.query({ url: 'http://127.0.0.1:8099/*' }))[0].id);
-const popup = await ctx.newPage();
-await popup.goto(`chrome-extension://${worker.url().split('/')[2]}/popup.html?tab=${tabId}`);
+popup = await ctx.newPage();
+await popup.goto(`chrome-extension://${extId}/popup.html?tab=${tabId}`);
 await popup.waitForTimeout(800);
 await popup.screenshot({ path: shots + '71-popup-switch.png' });
 await popup.uncheck('#playerButton');

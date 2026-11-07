@@ -173,7 +173,7 @@ async function main() {
   const { signIn = true } = await chrome.storage.local.get('signIn');
   $('signIn').checked = signIn;
   $('signIn').addEventListener('change', () => chrome.storage.local.set({ signIn: $('signIn').checked }));
-  const { playerButton = true } = await chrome.storage.local.get('playerButton');
+  const { playerButton = false } = await chrome.storage.local.get('playerButton');
   $('playerButton').checked = playerButton;
   $('playerButton').addEventListener('change', () => chrome.storage.local.set({ playerButton: $('playerButton').checked }));
   $('all').addEventListener('change', () => {

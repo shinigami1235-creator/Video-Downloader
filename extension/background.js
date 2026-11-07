@@ -7,14 +7,32 @@ const MENU = {
   video: 'Download with Video Downloader',
   link: 'Download this link with Video Downloader',
   page: 'Find videos on this page with Video Downloader',
+  button: 'Show the Download button on videos',
 };
+
+// the Download button on players is off until switched on here, in the popup or with Alt+Shift+D
+const buttonOn = async () => (await chrome.storage.local.get('playerButton')).playerButton === true;
+const setButton = (on) => chrome.storage.local.set({ playerButton: on });
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({ id: 'video', title: MENU.video, contexts: ['video', 'audio', 'frame'] });
     chrome.contextMenus.create({ id: 'link', title: MENU.link, contexts: ['link'] });
     chrome.contextMenus.create({ id: 'page', title: MENU.page, contexts: ['page', 'image'] });
+    buttonOn().then((on) =>
+      chrome.contextMenus.create({ id: 'button', title: MENU.button, type: 'checkbox', checked: on, contexts: ['all'] }),
+    );
   });
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && 'playerButton' in changes) {
+    chrome.contextMenus.update('button', { checked: changes.playerButton.newValue === true }, () => void chrome.runtime.lastError);
+  }
+});
+
+chrome.commands.onCommand.addListener(async (name) => {
+  if (name === 'toggle-button') setButton(!(await buttonOn()));
 });
 
 // ---- streams each tab loads ----------------------------------------------------
@@ -81,6 +99,7 @@ async function send(page, item) {
 }
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === 'button') return setButton(!!info.checked);
   const page = { url: tab?.url || info.pageUrl || '', title: tab?.title || '' };
   let item = null;
   if (info.menuItemId === 'link' && info.linkUrl) {

@@ -134,12 +134,12 @@
     }, 2500);
   });
 
-  chrome.storage.local.get('playerButton').then(({ playerButton = true }) => {
+  chrome.storage.local.get('playerButton').then(({ playerButton = false }) => {
     on = playerButton;
   });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && 'playerButton' in changes) {
-      on = changes.playerButton.newValue !== false;
+      on = changes.playerButton.newValue === true;
       if (!on) hide(true);
     }
   });

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Video Downloader",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Sends the videos on a page to the Video Downloader app on this computer.",
   "permissions": [
     "contextMenus",
@@ -47,5 +47,13 @@
       "all_frames": true,
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "commands": {
+    "toggle-button": {
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
+      "description": "Show or hide the Download button on videos"
+    }
+  }
 }
