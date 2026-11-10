@@ -469,10 +469,12 @@ const JSON_COMMANDS = {
     return null;
   },
   reveal_path: async (a) => {
+    testState.revealed = a.path;
     console.log('[reveal_path]', a.path);
     return null;
   },
   open_path: async (a) => {
+    testState.opened = a.path;
     console.log('[open_path]', a.path);
     return null;
   },

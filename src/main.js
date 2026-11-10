@@ -3,7 +3,7 @@ import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import './styles.css';
 
-import { initBackend, paths, join, invoke, on, readJson, writeJson, openDialog, mkdir, remove, writeText, list, exists } from './backend/index.js';
+import { initBackend, paths, join, dirname, basename, invoke, on, readJson, writeJson, openDialog, mkdir, remove, writeText, list, exists } from './backend/index.js';
 import { locateTools, missingTools, installTools, SETUP_STEPS, stepSize, updateYtdlp, ytdlpVersion, toolsDir, tools } from './engine/tools.js';
 import { lookUp, isYouTube } from './engine/ytdlp.js';
 import { MODELS, LANGUAGES } from './engine/transcribe.js';
@@ -871,7 +871,7 @@ function renderList(only) {
   $('clearBtn').hidden = !queue.items.some((x) => ['done', 'failed', 'cancelled'].includes(x.status));
 }
 
-function onListClick(e) {
+async function onListClick(e) {
   const b = e.target.closest('button[data-a]');
   if (!b) return;
   const id = b.closest('li').dataset.id;
@@ -891,8 +891,32 @@ function onListClick(e) {
     pre.textContent = it.errorDetails;
     li.append(pre);
   }
-  else if (a === 'open') invoke('open_path', { path: it.files.find((f) => /\.txt$/i.test(f)) || it.files[it.files.length - 1] }).catch(() => {});
-  else if (a === 'reveal') invoke('reveal_path', { path: it.files[it.files.length - 1] }).catch(() => {});
+  else if (a === 'open' || a === 'reveal') {
+    const want = a === 'open' ? it.files.find((f) => /\.txt$/i.test(f)) || it.files[it.files.length - 1] : it.files[it.files.length - 1];
+    const path = await findSaved(it, want);
+    if (path) invoke(a === 'open' ? 'open_path' : 'reveal_path', { path }).catch(() => {});
+    else invoke('open_path', { path: dirname(want) }).catch(() => {});
+  }
+}
+
+const nameKey = (name) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * The file as it is on disk. Downloads made before version 1.2.10 on Windows saved their
+ * names with · as ? and without Thai letters, so those are matched on their plain letters
+ * and numbers, and the list is corrected.
+ */
+async function findSaved(it, path) {
+  if (!path || (await exists(path).catch(() => false))) return path;
+  const dir = dirname(path);
+  const key = nameKey(basename(path));
+  const entries = await list(dir).catch(() => []);
+  const hit = entries.find((e) => !e.isDir && nameKey(e.name) === key);
+  if (!hit) return null;
+  const fixed = join(dir, hit.name);
+  it.files = it.files.map((f) => (f === path ? fixed : f));
+  queue.saveHistory();
+  return fixed;
 }
 
 // ---- the browser extension's folder ---------------------------------------------------

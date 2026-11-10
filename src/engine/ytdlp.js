@@ -220,10 +220,13 @@ export function downloadArgs(url, opts) {
   a.push('--newline', '--progress', '--no-mtime', '--no-simulate', '--ignore-errors');
   // streams that come in pieces, like Facebook's, TikTok's and most HLS players, download 4 pieces at a time
   a.push('--concurrent-fragments', '4');
-  a.push('--progress-template', 'download:@@P|%(progress.status)s|%(progress.downloaded_bytes)s|%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s|%(progress.tmpfilename)s');
+  a.push('--progress-template', 'download:@@P|%(progress.status)s|%(progress.downloaded_bytes)s|%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s|%(progress.tmpfilename)j');
   a.push('--progress-template', 'postprocess:@@Q|%(progress.status)s|%(progress.postprocessor)s');
-  a.push('--print', 'before_dl:@@T|%(playlist_index|)s|%(n_entries|)s|%(duration|)s|%(title)s');
-  a.push('--print', 'after_move:@@F|%(filepath)s');
+  // names come back as JSON, which escapes every letter outside plain English. Windows sends
+  // yt-dlp's text through its old code page, which turns · into ? and drops Thai letters,
+  // so a name sent as text no longer matches the file on disk.
+  a.push('--print', 'before_dl:@@T|%(playlist_index|)s|%(n_entries|)s|%(duration|)s|%(title)j');
+  a.push('--print', 'after_move:@@F|%(filepath)j');
   a.push(opts.wholePlaylist ? '--yes-playlist' : '--no-playlist');
   if (opts.wholePlaylist && opts.playlistItems?.length) a.push('--playlist-items', opts.playlistItems.join(','));
 
@@ -283,6 +286,16 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+/** A JSON string from yt-dlp, or the text itself from a yt-dlp that sent it plain. */
+function unjson(s) {
+  if (!s.startsWith('"')) return s;
+  try {
+    return JSON.parse(s);
+  } catch {
+    return s;
+  }
+}
+
 /** Turns one output line into an update object, or null for lines with nothing in them. */
 export function parseLine(line) {
   if (line.startsWith('@@P|')) {
@@ -294,7 +307,7 @@ export function parseLine(line) {
       total: num(total) || num(estimate),
       speed: num(speed),
       eta: num(eta),
-      tmp: rest.join('|'),
+      tmp: unjson(rest.join('|')),
     };
   }
   if (line.startsWith('@@Q|')) {
@@ -303,9 +316,9 @@ export function parseLine(line) {
   }
   if (line.startsWith('@@T|')) {
     const [, index, count, duration, ...title] = line.split('|');
-    return { type: 'item', index: num(index), count: num(count), duration: num(duration), title: title.join('|') };
+    return { type: 'item', index: num(index), count: num(count), duration: num(duration), title: unjson(title.join('|')) };
   }
-  if (line.startsWith('@@F|')) return { type: 'file', path: line.slice(4) };
+  if (line.startsWith('@@F|')) return { type: 'file', path: unjson(line.slice(4)) };
   if (/^ERROR:/.test(line)) return { type: 'error', text: line };
   return null;
 }
