@@ -32,6 +32,7 @@ The installed app updates itself. A little after it opens, and every 4 hours, it
 - **Signing:** each update is signed, and the app checks the signature against the key in `src-tauri/tauri.conf.json` before installing anything.
 - **The private key:** it's in `updater-key\video-downloader-updater.key` in this folder, on my laptop only and never on GitHub. The same text is saved as the `TAURI_SIGNING_PRIVATE_KEY` secret in the repository's Settings > Secrets and variables > Actions, which the build uses to sign.
 - **If the key is lost:** the next updates can't be signed, and everyone has to install once by hand again. So I keep a copy somewhere safe.
+- **Signing on GitHub:** the signing secret was added on 10 November 2026, so every build from then on publishes a signed update.
 - **Before the update secret was added:** copies installed before it can't update themselves, so friends with an older copy install once more from the Releases page.
 
 ## Using it
