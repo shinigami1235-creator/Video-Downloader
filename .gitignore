@@ -9,3 +9,4 @@ tests/media/*.webm
 tests/media/*.mp3
 tests/media/*.wav
 src-tauri/binaries
+updater-key/

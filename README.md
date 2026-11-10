@@ -24,6 +24,16 @@ GitHub builds the installers from the public repository shinigami1235-creator/Vi
 
 On a Mac, open the DMG and drag Video Downloader into Applications. macOS blocks the first open since the app isn't signed with an Apple developer account ($99 a year). Open System Settings, go to Privacy & Security, scroll down and press Open Anyway beside Video Downloader. On its first run the Mac app downloads yt-dlp (about 35 MB), Deno (about 45 MB) and FFmpeg (about 60 MB).
 
+## Updates
+
+The installed app updates itself. A little after it opens, and every 4 hours, it checks the newest release on GitHub. When there's a newer version it downloads it quietly and shows **Update ready** at the top. Clicking that installs it and reopens the app. Otherwise the update installs when the app closes. Settings has Check for updates to check straight away. A copy started from `Start Video Downloader.bat` shows its version as dev and doesn't update itself.
+
+- **Version numbers:** every build on GitHub is numbered 1.2 and then the build's run number, so each push is newer than the last.
+- **Signing:** each update is signed, and the app checks the signature against the key in `src-tauri/tauri.conf.json` before installing anything.
+- **The private key:** it's in `updater-key\video-downloader-updater.key` in this folder, on my laptop only and never on GitHub. The same text is saved as the `TAURI_SIGNING_PRIVATE_KEY` secret in the repository's Settings > Secrets and variables > Actions, which the build uses to sign.
+- **If the key is lost:** the next updates can't be signed, and everyone has to install once by hand again. So I keep a copy somewhere safe.
+- **Before the update secret was added:** copies installed before it can't update themselves, so friends with an older copy install once more from the Releases page.
+
 ## Using it
 
 1. Paste a link into the box. The app reads it on paste, or press Look up. A link copied before switching to the app fills in by itself.

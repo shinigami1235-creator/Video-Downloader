@@ -8,6 +8,7 @@ import { locateTools, missingTools, installTools, SETUP_STEPS, stepSize, updateY
 import { lookUp, isYouTube } from './engine/ytdlp.js';
 import { MODELS, LANGUAGES } from './engine/transcribe.js';
 import { Queue } from './engine/queue.js';
+import { startUpdater, checkForUpdate, appVersion } from './updater.js';
 
 const $ = (id) => document.getElementById(id);
 const settingsFile = () => join(paths.appData, 'settings.json');
@@ -935,6 +936,8 @@ async function openSettings() {
   $('gpuHint').hidden = paths.platform !== 'windows';
   $('extState').textContent = extensionSeen ? 'Connected' : '';
   show($('updateMsg'), '');
+  $('appVersion').textContent = await appVersion();
+  show($('appUpdateMsg'), '');
   $('version').textContent = (await ytdlpVersion()) || 'not found';
 }
 
@@ -1040,6 +1043,22 @@ async function start() {
     } catch {
       // a malformed message from the extension is dropped
     }
+  });
+
+  startUpdater({
+    badge: $('updateReady'),
+    panel: $('updatePanel'),
+    text: $('updateText'),
+    later: $('updateLater'),
+    install: $('updateInstall'),
+    busy: () => queue.running,
+  });
+  $('appUpdateBtn').addEventListener('click', async () => {
+    $('appUpdateBtn').disabled = true;
+    show($('appUpdateMsg'), 'Checking for a newer version', 'info');
+    const line = await checkForUpdate();
+    show($('appUpdateMsg'), line || '', /^Could not/.test(line || '') ? '' : /^Updates only/.test(line || '') ? 'info' : 'ok');
+    $('appUpdateBtn').disabled = false;
   });
 
   await ensureTools();

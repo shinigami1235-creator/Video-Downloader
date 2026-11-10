@@ -13,9 +13,12 @@
           <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="#1d2127" stroke="#3a414c"/><path d="M16 7v12m0 0-5-5m5 5 5-5" fill="none" stroke="#e8c16a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 23h14" stroke="#e7e9ec" stroke-width="2.6" stroke-linecap="round"/></svg>
           <span>Video Downloader</span>
         </div>
+        <div class="top-right">
+        <button id="updateReady" type="button" class="update-badge" hidden>Update ready</button>
         <button id="settingsBtn" class="ghost icon" title="Settings" aria-label="Settings">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.3 7.3 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.3 7.3 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1-2 7z"/></svg>
         </button>
+        </div>
       </header>
 
       <main>
@@ -222,6 +225,13 @@
           <button id="extBtn" type="button" class="ghost small">How to install</button>
         </div>
         <div class="row">
+          <span class="label wide">App version</span>
+          <span id="appVersion" class="dim"></span>
+          <button id="appUpdateBtn" type="button" class="ghost small">Check for updates</button>
+        </div>
+        <p class="dim small indent">The app checks for a new version a little after it opens and every 4 hours, downloads it quietly and shows Update ready at the top.</p>
+        <p id="appUpdateMsg" class="msg" hidden></p>
+        <div class="row">
           <span class="label wide">Tools folder</span>
           <button id="toolsBtn" type="button" class="ghost small">Open</button>
         </div>
@@ -244,6 +254,17 @@
         <div class="actions">
           <button id="extFolderBtn" type="button" class="ghost">Open the extension folder</button>
           <button id="extClose" type="button" class="primary">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="updatePanel" class="overlay" hidden>
+      <div class="panel">
+        <h2>Update ready</h2>
+        <p id="updateText" class="dim"></p>
+        <div class="actions">
+          <button id="updateLater" type="button" class="ghost">Later</button>
+          <button id="updateInstall" type="button" class="primary">Install now</button>
         </div>
       </div>
     </div>

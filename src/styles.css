@@ -819,3 +819,24 @@ textarea {
   font: inherit;
   resize: vertical;
 }
+
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.update-badge {
+  padding: 6px 12px;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gold);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.update-badge:hover {
+  background: rgba(232, 193, 106, 0.12);
+}
