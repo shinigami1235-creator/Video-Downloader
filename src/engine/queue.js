@@ -5,7 +5,17 @@ import { paths, join, exists, remove, readJson, writeJson, writeText, mkdir, ren
 import { runProcess, newJobId } from '../backend/proc.js';
 import { tools, ytdlpEnv, toolsDir } from './tools.js';
 import { downloadArgs, parseLine, plainError, rawDetails, stepName } from './ytdlp.js';
-import { shrinkVideo } from './shrink.js';
+import { shrinkVideo, probeDuration } from './shrink.js';
+
+const hostOf = (url) => {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
+};
+
+const MEDIA = /\.(mp4|m4v|mov|mkv|webm|m4a|mp3|opus|ogg|wav|flac|aac)$/i;
 import { transcribeFile } from './transcribe.js';
 
 const HISTORY_KEEP = 60;
@@ -42,6 +52,11 @@ export class Queue {
    * opts: as in downloadArgs(), plus smallMB and sendToPhone.
    */
   add(info, opts) {
+    // Instagram calls every post "Video by" and the account, so the post's id goes in the
+    // name; otherwise a second post from the same account is taken for the first one
+    if (!opts.name && (/^(video|photo|reel|post|story) by /i.test(info.title || '') || /(^|\.)instagram\.com$/i.test(hostOf(info.url)))) {
+      opts = { ...opts, idInName: true };
+    }
     const item = {
       id: newJobId('item'),
       url: info.url,
@@ -181,7 +196,28 @@ export class Queue {
         }
         if (!it.files.length && errors.length) throw Object.assign(new Error('failed'), { tail: errors });
       };
-      await downloadAll(runs);
+      // A download cut off part way, by a dropped connection or the computer shutting down,
+      // can keep its finished name. yt-dlp then takes it as done and fails on it, or hands it
+      // over as if it were fine, so either way the file is fetched again with overwriting on.
+      const again = async () => {
+        for (const f of await this.brokenFiles(it)) await remove(f).catch(() => {});
+        it.files = [];
+        errors.length = 0;
+        it.step = 'The saved file was unfinished, downloading it again';
+        paint(true);
+        await downloadAll(runs.map((o) => ({ ...o, force: true })));
+        if ((await this.brokenFiles(it)).length) {
+          throw Object.assign(new Error("The video came out unfinished twice, so it can't be opened. Press Retry to try again."), { shrink: true });
+        }
+      };
+      try {
+        await downloadAll(runs);
+      } catch (e) {
+        const said = errors.concat(e?.tail || []).join('\n');
+        if (local || e?.name === 'AbortError' || !/Invalid data found when processing input|moov atom not found/i.test(said)) throw e;
+        await again();
+      }
+      if (!local && (await this.brokenFiles(it)).length) await again();
       if (joining && it.files.length > 1) await this.joinParts(it, workDir, controller.signal, paint);
       if (transcript) {
         try {
@@ -269,6 +305,13 @@ export class Queue {
   }
 
   /** Puts the parts end to end in one file without re-encoding them. */
+  /** Saved video and sound files that FFmpeg can't open. */
+  async brokenFiles(it) {
+    const out = [];
+    for (const f of it.files) if (MEDIA.test(f) && (await exists(f).catch(() => false)) && !(await probeDuration(f))) out.push(f);
+    return out;
+  }
+
   async joinParts(it, workDir, signal, paint) {
     it.status = 'processing';
     it.step = `Joining ${it.files.length} parts`;

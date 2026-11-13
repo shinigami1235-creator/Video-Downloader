@@ -106,7 +106,8 @@ async function saveSettings() {
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
 
-const LINK_RE = /https?:\/\/[^\s"'<>]+/gi;
+// a link stops where the next https:// starts, so a link pasted twice in a row reads as two
+const LINK_RE = /https?:\/\/(?:(?!https?:\/\/)[^\s"'<>])+/gi;
 const looksLikeLink = (t) => /^https?:\/\/\S+$/i.test(t.trim()) || /^(www\.|m\.)?(youtube\.com|youtu\.be)\/\S+$/i.test(t.trim());
 const linksIn = (text) => [...new Set((String(text).match(LINK_RE) || []).map((l) => l.replace(/[),.;]+$/, '')))];
 
@@ -280,6 +281,11 @@ function listInLink(url) {
 
 async function look(url = $('linkInput').value.trim(), auth = null, fallbackTitle = '') {
   if (!url) return;
+  const found = linksIn(url);
+  if (found.length === 1 && found[0] !== url) {
+    url = found[0];
+    if ($('linkInput').value.trim()) $('linkInput').value = url;
+  }
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
   auth ||= pastedAuth('', url);
   lookController?.abort();

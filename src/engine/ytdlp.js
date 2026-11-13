@@ -249,12 +249,14 @@ export function downloadArgs(url, opts) {
     a.push('-f', 'bv*+ba/b', '-S', sort, '--merge-output-format', 'mp4', '--remux-video', 'mp4', '--embed-metadata');
   }
 
+  // a file already there under this name came out unfinished, so it is fetched again
+  if (opts.force) a.push('--force-overwrites');
   if (opts.subs) a.push('--write-subs', '--write-auto-subs', '--sub-langs', opts.subs, '--convert-subs', 'srt');
   if (opts.thumb) a.push('--write-thumbnail', '--convert-thumbnails', 'jpg');
   if (opts.sponsor) a.push('--sponsorblock-remove', 'sponsor,selfpromo,interaction');
 
   // the height goes in a video's name so a second download at another quality gets its own file
-  const base = opts.name ? literalName(opts.name) : '%(title).150B';
+  const base = opts.name ? literalName(opts.name) : opts.idInName ? '%(title).120B (%(id)s)' : '%(title).150B';
   // a direct stream file may report no height, and then the name goes without one
   let name = opts.type === 'video' ? `${base}%(height& {}p|)s` : base;
   if (opts.part) {

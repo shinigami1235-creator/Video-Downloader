@@ -43,6 +43,8 @@ STORY_POST = 'https://www.instagram.com/p/De_equOkV6j/'
 TALK = 'https://www.youtube.com/watch?v=TESTTALK01'
 # a post whose sound-only stream comes down silent, as some Facebook posts do
 SILENT = 'https://www.facebook.com/reel/1234567890'
+# Instagram posts all titled "Video by testuser", told apart only by their ids
+IG_POSTS = {f'https://www.instagram.com/p/IGPOST{n}/': f'IGPOST{n}' for n in (1, 2, 3)}
 # a title with letters Windows' old code page can't carry, sent the way Windows sends it
 ACCENT = 'https://www.facebook.com/reel/5550001'
 ACCENT_TITLE = '8.3K views \u00b7 42 reactions \uff5c Day 1 \u0e17\u0e14\u0e2a\u0e2d\u0e1a it\u2019s'
@@ -50,6 +52,8 @@ if '-J' in args:
     url = args[-1]
     if url == TALK:
         print(json.dumps(dict(video, id='TESTTALK01', title='Clinic talk test', duration=9, subtitles={}, automatic_captions={}, chapters=[]))); sys.exit(0)
+    if url in IG_POSTS:
+        print(json.dumps(dict(video, id=IG_POSTS[url], extractor_key='Instagram', webpage_url=url, title='Video by testuser', duration=40, subtitles={}, automatic_captions={}, chapters=[]))); sys.exit(0)
     if url == ACCENT:
         print(json.dumps(dict(video, id='5550001', extractor_key='Facebook', webpage_url=ACCENT, title=ACCENT_TITLE, duration=40, subtitles={}, automatic_captions={}, chapters=[]))); sys.exit(0)
     if url == SILENT:
@@ -80,6 +84,8 @@ if url in (LIST, WATCH_IN_LIST, STORIES): args[-1] = SERVER + 'page.html'
 if url == STORY_POST: args[-1] = SERVER + 'clip.mp4'
 if url == TALK: args[-1] = SERVER + 'talk.mp4'
 if url == SILENT: args[-1] = SERVER + ('noaudio.mp4' if 'ba/b' in args else 'talk.mp4')
+if url in IG_POSTS:
+    args[-1:] = ['--replace-in-metadata', 'title', '^.*$', 'Video by testuser', '--replace-in-metadata', 'id', '^.*$', IG_POSTS[url], SERVER + 'clip.mp4']
 if url == ACCENT:
     args[-1:] = ['--replace-in-metadata', 'title', '^.*$', ACCENT_TITLE, SERVER + 'talk.mp4']
     os.environ['PYTHONIOENCODING'] = 'cp1252:replace'
