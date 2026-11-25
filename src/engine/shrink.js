@@ -19,15 +19,20 @@ export function shrinkPlan(durationSec, limitMB) {
 
 /** Reads the length of a video from FFmpeg's own report on it. */
 export async function probeDuration(path) {
+  // the length is read as FFmpeg prints it, since a video with many chapters prints
+  // three lines per chapter after it and pushes it out of the saved last lines
+  let seconds = 0;
+  const read = (line) => {
+    const m = !seconds && /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(line);
+    if (m) seconds = Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+  };
   try {
-    await runProcess(tools.ffmpeg, ['-hide_banner', '-i', path], { keep: 60 });
+    await runProcess(tools.ffmpeg, ['-hide_banner', '-i', path], { keep: 60, onLine: read });
   } catch (e) {
     // ffmpeg exits with an error when given no output, after printing the details
-    const line = (e?.tail || []).concat([String(e?.message || '')]).find((l) => /Duration:\s*\d/.test(l));
-    const m = line && /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(line);
-    if (m) return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+    for (const line of (e?.tail || []).concat([String(e?.message || '')])) read(line);
   }
-  return 0;
+  return seconds;
 }
 
 /**

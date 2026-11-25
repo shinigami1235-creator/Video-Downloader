@@ -2,7 +2,7 @@
 // both be saved, a half-written file must be fetched again, and a link pasted twice in a
 // row must read as one link.
 import { chromium } from 'playwright';
-import { rmSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { rmSync, readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 const DL = '/tmp/ytd-test/downloads';
 const fail = (m) => { console.log('FAIL', m); process.exitCode = 1; };
@@ -10,6 +10,14 @@ const ok = (c, m) => (c ? console.log('ok', m) : fail(m));
 const opens = (f) => /Duration: \d/.test(spawnSync('ffmpeg', ['-hide_banner', '-i', `${DL}/${f}`], { encoding: 'utf8' }).stderr);
 rmSync(DL, { recursive: true, force: true });
 mkdirSync(DL, { recursive: true });
+// 40 chapters, so FFmpeg prints the length well before its last 60 lines
+const media = new URL('./media/', import.meta.url).pathname;
+if (!existsSync(`${media}chapters.mp4`)) {
+  const meta = [';FFMETADATA1'];
+  for (let i = 0; i < 40; i++) meta.push('[CHAPTER]', 'TIMEBASE=1/1000', `START=${i * 1000}`, `END=${(i + 1) * 1000}`, `title=Boss ${i + 1}`);
+  writeFileSync('/tmp/ytd-chapters.txt', meta.join('\n') + '\n');
+  spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', `${media}clip.mp4`, '-i', '/tmp/ytd-chapters.txt', '-map', '0', '-map_metadata', '1', '-map_chapters', '1', '-c', 'copy', `${media}chapters.mp4`]);
+}
 rmSync('/tmp/ytd-test/appdata/history.json', { force: true });
 rmSync('/tmp/ytd-test/appdata/settings.json', { force: true });
 
@@ -45,6 +53,10 @@ await get('https://www.instagram.com/p/IGPOST3/', 3);
 const status = await app.textContent('.item .status');
 console.log('third:', status);
 ok(opens('Video by testuser (IGPOST3).mp4'), 'the half-written file was downloaded again and opens');
+// 4. a video with 40 chapters, which is fine and must not be taken for unfinished
+await get('https://www.youtube.com/watch?v=TESTCHAPTR1', 4);
+console.log('chaptered:', await app.textContent('.item .status'));
+ok(readdirSync(DL).some((f) => f.startsWith('chapters')), 'the chaptered video was saved');
 ok(!(await app.$$eval('.item.failed', (l) => l.length)), 'nothing failed');
 console.log('errors:', errors);
 ok(!errors.length, 'no page errors');
